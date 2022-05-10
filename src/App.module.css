@@ -1,0 +1,22 @@
+.container {
+    display: grid;
+    /* padding: 16px; */
+    grid-template-columns: 2fr 1fr;
+    max-height: 100vh;
+}
+
+.container > div {
+    /* height: calc(100vh - 32px); */
+    overflow: hidden;
+}
+
+.filter {
+    width: 100%;
+    display: block;
+    padding: 14px 20px;
+    font-size: 16px;
+    border: none;
+    background-color: #F1F1F1;
+    outline: none;
+    border-radius: 6px;
+}

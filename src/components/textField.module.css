@@ -1,0 +1,45 @@
+.card {
+    margin: 10px;
+    box-shadow: 0 2px 9px -2px rgba(0, 0, 0, 0.25);
+    padding: 10px;
+    border-radius: 8px;
+}
+
+.card h1 {
+    margin: 0;
+    padding: 0;
+    font-weight: 400;
+    font-size: 22px;
+}
+
+.field label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #666;
+}
+
+.field input, .field textarea {
+    border: none;
+    display: block;
+    width: 100%;
+    outline: none;
+    padding: 6px 2px;
+    background-color: #f1f1f1;
+    border-bottom: 2px solid #BBB;
+}
+
+.field textarea {
+    max-width: 100%;
+    min-width: 100%;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.field input:focus, .field textarea:focus {
+    border: none;
+    display: block;
+    width: 100%;
+    outline: none;
+    padding: 6px 2px;
+    background-color: #f1f1f1;
+    border-bottom: 2px solid #666;
+}
