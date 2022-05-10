@@ -54,7 +54,7 @@ function BooksPage() {
     const [rows, setRows] = useState<Book[]>([])
     useEffect(() => {
         console.log(1)
-        return booksDatabase.subscribeBooks(books => setRows(books))
+        return booksDatabase.subscribe(books => setRows(books))
     }, [])
 
     // Current state

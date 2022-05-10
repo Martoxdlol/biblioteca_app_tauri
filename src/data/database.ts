@@ -2,6 +2,7 @@ import { app } from "@tauri-apps/api";
 import { readTextFile, writeFile, copyFile, renameFile, removeFile } from "@tauri-apps/api/fs";
 import { Type } from "typescript";
 import { Book } from "../classes/Book";
+import { LibraryEvent, LibraryEventLoan, LibraryEventReturn } from "../classes/LibraryEvent";
 import { CSV, CSVObj, CSVParseOptionsTypes } from "./CSV";
 
 
@@ -36,7 +37,7 @@ abstract class Database<ITEMTYPE, IDTYPE> {
             }
             this.items = itemsByKey
         }
-        return this.items ? [...this.items.values()] : []
+        return Array.from(this.items.values())
     }
 
     add(item: ITEMTYPE) {
@@ -70,7 +71,7 @@ abstract class Database<ITEMTYPE, IDTYPE> {
         }
     }
 
-    subscribeBooks(callback: (items: ITEMTYPE[]) => any) {
+    subscribe(callback: (items: ITEMTYPE[]) => any) {
         const subs = this.subscriptions
         subs.add(callback)
         this.getItems().then(callback)
@@ -95,19 +96,15 @@ abstract class Database<ITEMTYPE, IDTYPE> {
     }
 }
 
-class BooksDatabase extends Database<Book, number> {
-    biggestId?: number
-    constructor() {
-        super("./data/books.csv", { code: (c) => parseInt(c) }, (book) => book.code, r => new Book(r as any))
-        this.subscribeBooks(() => this.biggestId = undefined)
-    }
-
+class BookOrEventDB<T, V> extends Database<T, V> {
+    biggestId?: any
     get lastId(): number {
         if (this.biggestId) return this.biggestId
         if (this.items) {
-            for (const book of this.items.values()) {
-                if (!this.biggestId) this.biggestId = book.code
-                if (book.code > this.biggestId!) this.biggestId = book.code
+            for (const item of this.items.values()) {
+                const id = this.getItemKey(item)
+                if (!this.biggestId) this.biggestId = id
+                if (id > this.biggestId!) this.biggestId = id
             }
             return this.biggestId || 1
         }
@@ -115,5 +112,26 @@ class BooksDatabase extends Database<Book, number> {
     }
 }
 
+class BooksDatabase extends BookOrEventDB<Book, number> {
+    biggestId?: number
+    constructor() {
+        super("./data/books.csv", { code: (c) => parseInt(c) }, (book) => book.code, r => new Book(r as any))
+        this.subscribe(() => this.biggestId = undefined)
+    }
+}
+
+class LibraryEventsDatabase extends BookOrEventDB<LibraryEvent, number> {
+    biggestId?: number
+    constructor() {
+        super("./data/events.csv", { id: (c) => parseInt(c), date: d => new Date(d), books: books => books.split(',').map(book => booksDatabase.get(parseInt(book)) || null).filter(x => x !== null) }, (event) => event.id, r => {
+            if (r.action === 'loan') return new LibraryEventLoan(r as any)
+            if (r.action === 'return') return new LibraryEventReturn(r as any)
+            return new LibraryEventLoan(r as any)
+        })
+        this.subscribe(() => this.biggestId = undefined)
+    }
+}
+
 const booksDatabase = new BooksDatabase()
-export { booksDatabase }
+const libraryEventsDatabase = new LibraryEventsDatabase()
+export { booksDatabase, libraryEventsDatabase }
