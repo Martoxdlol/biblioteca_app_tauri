@@ -25,6 +25,14 @@ export class LibraryEvent {
     get booksList() {
         return Array.from(this.books.values())
     }
+
+    static actionsNames: { [key: string]: string } = {
+        loan: "Prestar",
+        return: "Devolver"
+    }
+    
+    isLoan = false
+    isReturn = false
 }
 
 export class LibraryEventLoan extends LibraryEvent {

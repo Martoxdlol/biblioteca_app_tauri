@@ -26,6 +26,7 @@ const columns: TableColumn<Book>[] = [
     {
         name: 'Código',
         selector: row => row.code,
+        width: '83px'
     },
     {
         name: 'Título',
@@ -75,8 +76,9 @@ function BooksPage() {
     const navigate = useNavigate()
 
     function newBook() {
-        const b = new Book({ code: booksDatabase.lastId + 1, author: '', title: '', description: '', editorial: '', gender: '' })
+        const b = new Book({ code: booksDatabase.lastId + 1, author: '', title: 'Nuevo libro', description: '', editorial: '', gender: '' })
         setBook(b)
+        setSelectedRow([])
     }
 
     return (
@@ -89,6 +91,7 @@ function BooksPage() {
                         onRowClicked={row => {
                             setSelectedRow([row])
                         }}
+                        selectableRowsHighlight={true}
                         pagination={true}
                         paginationComponentOptions={{}}
                         paginationPerPage={30}
@@ -117,7 +120,7 @@ function BooksPage() {
                         <h1>Acciones</h1>
                         <CardButtons>
                             <button onClick={newBook}>Cargar nuevo libro</button>
-                            {book && <button>Prestar libro</button>}
+                            {booksDatabase.get(book?.code || -1) && <button>Prestar libro</button>}
                         </CardButtons>
                     </Card>
                     <Card>

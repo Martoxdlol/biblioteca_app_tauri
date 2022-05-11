@@ -13,6 +13,8 @@
     "@types/react": "^18.0.9",
     "@types/react-dom": "^18.0.3",
     "history-pro": "^0.0.4",
+    "moment": "^2.29.3",
+    "moment_spanish_locale": "^1.0.1",
     "path-browserify": "^1.0.1",
     "react": "^18.1.0",
     "react-data-table-component": "^7.5.1",

@@ -5,24 +5,32 @@ import DataTable, { TableColumn } from 'react-data-table-component';
 import Card, { CardButtons } from '../components/Card';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useHistory, useNavigate } from 'react-router-history-pro';
-import { libraryEventsDatabase } from '../data/database';
+import { booksDatabase, LibraryEventsDatabase } from '../data/database';
 import { LibraryEvent, LibraryEventLoan } from '../classes/LibraryEvent';
-
-const actions: { [key: string]: string } = {
-    loan: "Prestar",
-    return: "Devolver"
-}
+import moment from 'moment';
+import LibraryEventCard from '../components/libraryEventCard';
 
 const columns: TableColumn<LibraryEvent>[] = [
     {
         name: 'Acción',
-        selector: row => actions[row.action],
+        selector: row => LibraryEvent.actionsNames[row.action],
     },
     {
-        name: 'Quien',
+        name: 'Prestado/devuelto a/por',
         selector: row => row.user,
     },
     {
+        name: 'Fecha',
+        selector: row => {
+            const d = moment(row.date)
+            const yd = d.year
+            const yn = moment().year
+            if (yn == yd) return d.format("d [de] MMMM")
+            return d.format("d [de] MMMM del YYYY")
+        },
+    },
+    {
+        width: "70%",
         name: 'Libros',
         selector: row => row.booksList.map(b => b.code.toString() + ": " + b.title).join(', '),
     },
@@ -31,8 +39,17 @@ const columns: TableColumn<LibraryEvent>[] = [
 function LibraryEventsPage() {
     // Data
     const [rows, setRows] = useState<LibraryEvent[]>([])
+    const [database, setDatabase] = useState<LibraryEventsDatabase>(new LibraryEventsDatabase())
+
+    // Current
+    const [libraryEvent, setLibraryEvent] = useState<LibraryEvent>()
+
     useEffect(() => {
-        return libraryEventsDatabase.subscribe(events => setRows(events))
+        let cancel: Function
+        booksDatabase.getItems().then((its) => {
+            cancel = database.subscribe(events => setRows(events))
+        })
+        return () => cancel && cancel()
     }, [])
 
 
@@ -47,9 +64,11 @@ function LibraryEventsPage() {
                     <DataTable
                         columns={columns}
                         data={rows}
-                        // onRowClicked={row => {
-                        //     setSelectedRow([row])
-                        // }}
+                        onRowClicked={row => {
+                            setLibraryEvent(row)
+                        }}
+                        selectableRowSelected={row => libraryEvent === row}
+                        selectableRowsHighlight={true}
                         pagination={true}
                         paginationComponentOptions={{}}
                         paginationPerPage={30}
@@ -62,6 +81,7 @@ function LibraryEventsPage() {
                     />
                 </div>
                 <div style={{ maxHeight: '100vh', overflowY: 'auto' }}>
+                    {libraryEvent && <LibraryEventCard libraryEvent={libraryEvent} libraryEventsDatabase={database} />}
                     <Card>
                         <h1>Prestamo</h1>
                         <CardButtons>
@@ -71,7 +91,7 @@ function LibraryEventsPage() {
                     <Card>
                         <h1>Navegación</h1>
                         <CardButtons>
-                            <button onClick={() => history.back()}>Volver</button>
+                            <button onClick={() => navigate('/')}>Ir a libros</button>
                         </CardButtons>
                     </Card>
                 </div>

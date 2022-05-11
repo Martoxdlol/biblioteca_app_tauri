@@ -34,8 +34,10 @@ export default function BookCard({ book: _book, ref }: { book: Book, ref: React.
         }
 
         const newBook = new Book({ code: newCode, title, author, gender, editorial, description })
+        if(newBook.code != book.code) booksDatabase.delete(book)
         booksDatabase.add(newBook)
         setBook(newBook)
+        await booksDatabase.save()
     }
 
     return <Card>
@@ -46,7 +48,7 @@ export default function BookCard({ book: _book, ref }: { book: Book, ref: React.
         <TextField id="gender" label="Género" value={gender} onChange={e => setGender(e.target.value)} />
         <TextField id="editorial" label="Editorial" value={editorial} onChange={e => setEditorial(e.target.value)} />
         <TextField id="description" label="Descripción" value={description} onChange={e => setDescription(e.target.value)} multiline={true} />
-        <DeleteButton onDelete={() => booksDatabase.delete(book)} />
+        <DeleteButton onDelete={() => { booksDatabase.delete(book); booksDatabase.save() }} />
         <CardButtons>
             <button onClick={reset}>Cancelar</button>
             <button onClick={save}>Guardar</button>

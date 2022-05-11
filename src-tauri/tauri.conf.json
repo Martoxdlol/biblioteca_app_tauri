@@ -12,19 +12,22 @@
   },
   "tauri": {
     "allowlist": {
+      "path": {
+        "all": true
+      },
       "fs": {
         "all": true,
-        "copyFile": false,
-        "createDir": false,
+        "copyFile": true,
+        "createDir": true,
         "readDir": true,
         "readFile": true,
         "removeDir": false,
-        "removeFile": false,
-        "renameFile": false,
+        "removeFile": true,
+        "renameFile": true,
         "scope": [
-          "*"
+          "$APP/*"
         ],
-        "writeFile": false
+        "writeFile": true
       },
       "shell": {
         "all": false,

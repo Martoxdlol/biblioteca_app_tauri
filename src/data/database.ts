@@ -1,11 +1,11 @@
 import { app } from "@tauri-apps/api";
-import { readTextFile, writeFile, copyFile, renameFile, removeFile } from "@tauri-apps/api/fs";
+import { readTextFile, writeFile, copyFile, renameFile, removeFile, createDir } from "@tauri-apps/api/fs";
+import { appDir } from "@tauri-apps/api/path";
+import { join } from "path-browserify";
 import { Type } from "typescript";
 import { Book } from "../classes/Book";
 import { LibraryEvent, LibraryEventLoan, LibraryEventReturn } from "../classes/LibraryEvent";
 import { CSV, CSVObj, CSVParseOptionsTypes } from "./CSV";
-
-
 
 abstract class Database<ITEMTYPE, IDTYPE> {
     initializer: (obj: CSVObj) => ITEMTYPE
@@ -24,7 +24,9 @@ abstract class Database<ITEMTYPE, IDTYPE> {
     }
 
     async readFromCSVFile() {
-        const text = await readTextFile(this.csvPath)
+        const appdir = await appDir()
+        const dataDir = join(appdir, 'data')
+        const text = await readTextFile(join(dataDir, this.csvPath))
         return CSV.parse(text, { types: this.types }).map(this.initializer)
     }
 
@@ -32,7 +34,14 @@ abstract class Database<ITEMTYPE, IDTYPE> {
         if (!this.items) {
             const items = await this.readFromCSVFile()
             const itemsByKey = new Map<IDTYPE, ITEMTYPE>()
-            for (const item of items) {
+            const _items = items.sort((a, b) => {
+                const ka = this.getItemKey(a)
+                const kb = this.getItemKey(b)
+                if (ka > kb) return 1
+                if (ka < kb) return 1
+                return 0
+            })
+            for (const item of _items) {
                 itemsByKey.set(this.getItemKey(item), item)
             }
             this.items = itemsByKey
@@ -46,11 +55,10 @@ abstract class Database<ITEMTYPE, IDTYPE> {
         }
         this.items.set(this.getItemKey(item), item)
         this.emitUpdate();
-        this.save()
     }
 
 
-    async deleteWithId(itemId: IDTYPE) {
+    deleteWithId(itemId: IDTYPE) {
         if (!this.items) {
             this.items = new Map<IDTYPE, ITEMTYPE>()
             return
@@ -83,16 +91,20 @@ abstract class Database<ITEMTYPE, IDTYPE> {
     }
 
     async save() {
+        const appdir = await appDir()
+        const dataDir = join(appdir, 'data')
+        await createDir(dataDir, { recursive: true })
+
         try {
-            await removeFile(this.csvPath + ".copy-2")
+            await removeFile(join(dataDir, this.csvPath + ".copy-2"))
         } catch (error) { }
         try {
-            await renameFile(this.csvPath + ".copy-1", this.csvPath + ".copy-2")
+            await renameFile(join(dataDir, this.csvPath + ".copy-1"), join(dataDir, this.csvPath + ".copy-2"))
         } catch (error) { }
         try {
-            await copyFile(this.csvPath, this.csvPath + ".copy-1")
+            await copyFile(join(dataDir, this.csvPath), join(dataDir, this.csvPath + ".copy-1"))
         } catch (error) { }
-        writeFile({ path: this.csvPath, contents: CSV.encode([...(this.items?.values() || [])]) })
+        writeFile({ path: join(dataDir, this.csvPath), contents: CSV.encode([...(this.items?.values() || [])]) })
     }
 }
 
@@ -112,18 +124,26 @@ class BookOrEventDB<T, V> extends Database<T, V> {
     }
 }
 
-class BooksDatabase extends BookOrEventDB<Book, number> {
+export class BooksDatabase extends BookOrEventDB<Book, number> {
     biggestId?: number
     constructor() {
-        super("./data/books.csv", { code: (c) => parseInt(c) }, (book) => book.code, r => new Book(r as any))
+        super("./books.csv", { code: (c) => parseInt(c) }, (book) => book.code, r => new Book(r as any))
         this.subscribe(() => this.biggestId = undefined)
     }
 }
 
-class LibraryEventsDatabase extends BookOrEventDB<LibraryEvent, number> {
+export class LibraryEventsDatabase extends BookOrEventDB<LibraryEvent, number> {
     biggestId?: number
+
+    static csvParserTypes: CSVParseOptionsTypes = {
+        id: c => parseInt(c),
+        date: d => new Date(d),
+        books: books => books.split(',').map(book => booksDatabase.get(parseInt(book)) || null).filter(x => x !== null)
+    }
+
     constructor() {
-        super("./data/events.csv", { id: (c) => parseInt(c), date: d => new Date(d), books: books => books.split(',').map(book => booksDatabase.get(parseInt(book)) || null).filter(x => x !== null) }, (event) => event.id, r => {
+        super("./events.csv", LibraryEventsDatabase.csvParserTypes, (event) => event.id, r => {
+            console.log(r)
             if (r.action === 'loan') return new LibraryEventLoan(r as any)
             if (r.action === 'return') return new LibraryEventReturn(r as any)
             return new LibraryEventLoan(r as any)
@@ -133,5 +153,5 @@ class LibraryEventsDatabase extends BookOrEventDB<LibraryEvent, number> {
 }
 
 const booksDatabase = new BooksDatabase()
-const libraryEventsDatabase = new LibraryEventsDatabase()
-export { booksDatabase, libraryEventsDatabase }
+
+export { booksDatabase }

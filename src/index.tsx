@@ -4,6 +4,10 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import './window'
+import { setLocaleTo_ES_WithData } from 'moment_spanish_locale'
+import moment from 'moment';
+
+setLocaleTo_ES_WithData(moment)
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
